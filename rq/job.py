@@ -6,6 +6,7 @@ import inspect
 import pickle
 import warnings
 import zlib
+import operator
 
 from functools import partial
 from uuid import uuid4
@@ -98,7 +99,13 @@ class Job(object):
             job._instance = func.__self__
             job._func_name = func.__name__
         elif inspect.isfunction(func) or inspect.isbuiltin(func):
-            job._func_name = '{0}.{1}'.format(func.__module__, func.__qualname__)
+            if func.__name__ != func.__qualname__:
+                class_name = func.__qualname__.rsplit('.', 1)[0]
+                module = inspect.getmodule(func)
+                job._instance = operator.attrgetter(class_name)(module)
+                job._func_name = func.__name__
+            else:
+                job._func_name = '{0}.{1}'.format(func.__module__, func.__name__)
         elif isinstance(func, string_types):
             job._func_name = as_text(func)
         elif not inspect.isclass(func) and hasattr(func, '__call__'):  # a callable class instance
